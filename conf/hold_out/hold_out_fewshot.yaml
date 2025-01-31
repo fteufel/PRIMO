@@ -1,0 +1,43 @@
+train: null
+valid: null
+test:
+  - AMFR_HUMAN_Tsuboyama_2023_4G3O
+  - RCD1_ARATH_Tsuboyama_2023_5OAO
+  - SR43C_ARATH_Tsuboyama_2023_2N88
+  - FECA_ECOLI_Tsuboyama_2023_2D1U
+  - PKN1_HUMAN_Tsuboyama_2023_1URF
+  - CSN4_MOUSE_Tsuboyama_2023_1UFM
+  - SPA_STAAU_Tsuboyama_2023_1LP1
+  - NKX31_HUMAN_Tsuboyama_2023_2L9R
+  - EPHB2_HUMAN_Tsuboyama_2023_1F0M
+  - SQSTM_MOUSE_Tsuboyama_2023_2RRU
+  - MAFG_MOUSE_Tsuboyama_2023_1K1V
+  - SCIN_STAAR_Tsuboyama_2023_2QFF
+  - DNJA1_HUMAN_Tsuboyama_2023_2LO1
+  - VRPI_BPT7_Tsuboyama_2023_2WNM
+  - ESTA_BACSU_Nutschel_2020
+  - BLAT_ECOLX_Deng_2012
+  - BLAT_ECOLX_Jacquier_2013
+  - BLAT_ECOLX_Stiffler_2015
+  - BLAT_ECOLX_Firnberg_2014
+  - VKOR1_HUMAN_Chiasson_2020_activity
+  - VKOR1_HUMAN_Chiasson_2020_abundance
+  - Q8WTC7_9CNID_Somermeyer_2022
+  - CASP3_HUMAN_Roychowdhury_2020
+  - D7PM05_CLYGR_Somermeyer_2022
+  - GFP_AEQVI_Sarkisyan_2016
+
+  # these one need to also be removed to make metalic clean.
+  - DLG4_HUMAN_Faure_2021
+  - RL40A_YEAST_Mavor_2016
+  - RL40A_YEAST_Roscoe_2014
+  - DYR_ECOLI_Nguyen_2023
+
+  # metalic
+  - DLG4_RAT_McLaughlin_2012
+  - RL40A_YEAST_Roscoe_2013
+  - GRB2_HUMAN_Faure_2021
+  - DYR_ECOLI_Thompson_2019
+  - CAPSD_AAV2S_Sinai_2021
+  - HIS7_YEAST_Pokusaeva_2019 # run this one last, limiting.
+ignore: null

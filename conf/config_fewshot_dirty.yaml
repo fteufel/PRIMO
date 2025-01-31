@@ -1,0 +1,87 @@
+defaults:
+  - hold_out: dirty_split
+hydra :
+  run:
+    dir: //novo/projects/departments/mi/pgformer/ProteinPairTransformer/outputs/${now:%Y-%m-%d}/${hydra.job.name}_${now:%H-%M-%S}
+  searchpath:
+    - file://conf 
+data:
+  all_data_df: data/all_samples_with_folds.pkl #data/all_samples.csv debug_blat_ecolx
+  cv_mode: precomputed_random_valonly
+  test_mode: hold_out # keep_few_shot
+  # few_shot_N: 16
+  wild_type_csv: data/all_wt.csv
+  embedding_dir: data/embeddings
+  sets_per_epoch: 1000 # sets are always sampled, so we define epoch lengths ourselves.
+  sets_per_validation: 100
+  set_size: 32
+  set_size_test: 32 # when we want larger context sets for prediction only
+  num_labels: 6 # the total number of label dimensions
+  max_protein_length: 4000 # for now, we just drop proteins that are too long
+  window_size: 512
+  window_size_longer: 1024
+  # csv files that contain zero-shot scores for all sequences.
+  # entries may be missing compared to all_data_df. Will just put mask.
+  transform: minmax
+  auxiliary_labels:
+    - data/progen_scores.csv
+    # - data/prosst_scores.csv
+  auxiliary_labels_wild_type:
+    - data/progen_scores_wt.csv
+    # - data/prosst_scores_wt.csv
+  # IDs of assays to hold out
+  hold_out: ${hold_out}
+  # set the pretrained checkpoint once we are at the fine-tuning stage.
+model:
+  num_layers: 6
+  hidden_size: 400
+  embedding_size: 1280
+  ff_factor: 4
+  num_attention_heads: 8
+  dropout: 0.1
+  target_predict_mode: embedding
+  attn_method: pooled # pooled tiered
+  loss_fn: "all_pairs" #mse
+  auxiliary_label_mode: embed
+training:
+  # generic training parameters
+  lr: 0.0001
+  warmup_steps: 1000
+  epochs: 150
+  long_seq_epochs: 0
+  grad_accumulation_steps: 4
+  batch_size: 3
+  metric: "spearman"
+  stopping_criterion: "val_micro_spearman" #"val_micro_mse"
+  devices:
+    - 0
+  num_workers: 0
+  val_num_workers: 0
+  clip_grad_norm: 1.0
+  compile: True
+  precision: 16-mixed
+  # scheduling of the loss balancing coefficient
+  start_mlm_coefficient: 0.5
+  end_mlm_coefficient: 0.05
+  # for logging - set to null to disable
+  wandb_project: pair-transformer
+  # whether to sample the same sets for val in each epoch
+  deterministic_val_sets: False
+  only_mask_last: False
+  masker: 
+    _target_: pairtransformer.utils.maskers.SpanMasker
+    min_span_frac: 0.05
+    max_span_frac: 0.15
+    label_mask_prob: 0.33
+    label_mask_token_id: -100
+    aa_mask_token_id: 32
+    span_mask_prob: 0.2
+    always_mask_variants: True
+  set_sampler:
+    _target_: pairtransformer.utils.set_samplers.SimpleSetSampler
+    property_sample_mode: assay_sqrt # proportional to the square root of the number of assays per property
+fine_tuning:
+  pretrained_checkpoint_dir: null
+  num_steps: 25
+  few_shot_n: 32
+  seed: 1
