@@ -23,22 +23,34 @@ for file in data/unformatted/*.csv
 do
   python3 scripts/compute_fitness_progen.py "${file}" "${file}" --all_columns --Progen2_model_name_or_path misc_checkpoints/progen2-medium
 done
+python3 scripts/compute_fitness_progen.py data/all_wt.csv data/progen_scores_wt.csv --Progen2_model_name_or_path misc_checkpoints/progen2-medium --all_columns
+# rename `score_progen2-medium` in row 0 to label:
+sed -i '1s/score_progen2-medium/label/' data/progen_scores_wt.csv
 
+# reformat data for loading
 python3 scripts/reformat_data.py
 python3 scripts/add_random_cv_folds.py
 
-# this here fills in progen scores for stuff that doesn't have it precomputed, and writes to a single file.
+# this here fills in progen scores for stuff that doesn't have it precomputed, and writes to a single file that we load for 0shot scores.
 python3 scripts/compute_fitness_progen.py data/all_samples.csv data/progen_scores.csv --Progen2_model_name_or_path misc_checkpoints/progen2-medium
 
 ```
 
 ## Training
 
+This command trains the PRIMO model, using a batch size of 4*3=12. Depending on GPU memory available, the factoring can be adjusted to improve speed.
 ```bash
-python3 scripts/train.py
-
-python3 scripts/train.py --config-name=config_fewshot model.attn_method=pooled data.sets_per_epoch=1000
+python3 scripts/train.py training.grad_accumulation_steps=6 training.batch_size=2 hydra.job.name=default_primo training.compile=False
 ```
+
+Ablation models
+```bash
+# PRIMO with the Metalic split
+python3 scripts/train.py --config_name=config_fewshot_dirty training.grad_accumulation_steps=4 training.batch_size=3 hydra.job.name=badsplit_primo training.compile=False
+
+python3 scripts/train.py training.grad_accumulation_steps=6 training.batch_size=2 hydra.job.name=mse_primo training.compile=True model.loss_fn=mse
+```
+
 
 ## Evaluation
 

@@ -27,10 +27,8 @@ data:
   transform: minmax
   auxiliary_labels:
     - data/progen_scores.csv
-    # - data/prosst_scores.csv
   auxiliary_labels_wild_type:
     - data/progen_scores_wt.csv
-    # - data/prosst_scores_wt.csv
   # IDs of assays to hold out
   hold_out: ${hold_out}
   # set the pretrained checkpoint once we are at the fine-tuning stage.

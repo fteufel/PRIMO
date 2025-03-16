@@ -12,7 +12,6 @@ name = "primo"
 version = "0.0.1"
 description = ""
 readme = "README.md"
-authors = [{name="Felix Teufel", email="felix.teufel@bio.ku.dk"}]
 classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
