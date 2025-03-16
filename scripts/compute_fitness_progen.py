@@ -21,7 +21,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 
 # Add the parent directory of that to the system path
 sys.path.append(os.path.join(dir_path, '..'))
-from pairtransformer.zero_shot_utils.modeling_progen import ProGenForCausalLM
+from primo.zero_shot_utils.modeling_progen import ProGenForCausalLM
 
 
 ########################################################################
@@ -143,7 +143,7 @@ def main():
     
     # dir_path = os.path.dirname(os.path.realpath(__file__))
     # tokenizer_path = os.path.join(dir_path, 'tokenizer.json')
-    tokenizer_path = 'pairtransformer/zero_shot_utils/progen_tokenizer.json'
+    tokenizer_path = 'primo/zero_shot_utils/progen_tokenizer.json'
     tokenizer = create_tokenizer_custom(file=tokenizer_path)
 
     model_size = args.Progen2_model_name_or_path.split('/')[-1]

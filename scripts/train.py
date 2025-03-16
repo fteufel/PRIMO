@@ -6,8 +6,8 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 import lightning as L
 import torch
 
-from pairtransformer.lightning import LightningPairTransformer
-from pairtransformer.utils.datamodule import SetDataModule
+from primo.lightning import LightningSetTransformer
+from primo.utils.datamodule import SetDataModule
 
 torch.set_float32_matmul_precision('medium')
 
@@ -31,7 +31,7 @@ def run_experiment(cfg : DictConfig) -> None:
 
     # set up the model
     print("Loading model")
-    model = LightningPairTransformer(cfg)
+    model = LightningSetTransformer(cfg)
 
     checkpoint_callback = ModelCheckpoint(
         monitor=cfg.training.stopping_criterion,  # Specify the metric to monitor
@@ -84,7 +84,7 @@ def run_experiment(cfg : DictConfig) -> None:
         dm.cfg.training.batch_size = new_batch_size
         dm.train_dataset.min_pad_length = cfg.data.window_size_longer
         dm.val_pair_dataset.min_pad_length = cfg.data.window_size_longer
-        from pairtransformer.utils.set_samplers import CombinedProbabilitySampler
+        from primo.utils.set_samplers import CombinedProbabilitySampler
         if type(dm.train_dataset.pair_sampler) == CombinedProbabilitySampler:
             for sampler in dm.train_dataset.pair_sampler.samplers:
                 sampler.window_size = cfg.data.window_size_longer

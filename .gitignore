@@ -1,0 +1,5 @@
+data/cv_folds/*
+data/unformatted/*
+misc_checkpoints/
+primo.egg-info/
+*.pyc

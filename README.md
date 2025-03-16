@@ -12,7 +12,11 @@ pip install -e .
 
 ## Data prep
 
-These scripts rely on hardcoded paths pointing to /data. They require materials that can be downloaded from ProteinGym.
+These scripts rely on hardcoded paths pointing to `/data`. They require materials that can be downloaded from ProteinGym. Please download all ProteinGym DMS (csv formatted, `DMS_ProteinGym_substitutions.zip` and `DMS_ProteinGym_indels.zip`) and place them in `data/unformatted`. 
+
+The random split needs to be placed in `data/cv_folds`. Download https://marks.hms.harvard.edu/proteingym/cv_folds_singles_substitutions.zip, https://marks.hms.harvard.edu/proteingym/cv_folds_multiples_substitutions.zip, https://marks.hms.harvard.edu/proteingym/cv_folds_indels.zip.
+
+Next we precompute ProGen 0-shot scores for each sample. Download ProGen2-medium (https://github.com/enijkamp/progen2) and place it at e.g. `misc_checkpoints`. 
 ```bash
 
 for file in data/unformatted/*.csv
@@ -32,6 +36,8 @@ python3 scripts/compute_fitness_progen.py data/all_samples.csv data/progen_score
 
 ```bash
 python3 scripts/train.py
+
+python3 scripts/train.py --config-name=config_fewshot model.attn_method=pooled data.sets_per_epoch=1000
 ```
 
 ## Evaluation

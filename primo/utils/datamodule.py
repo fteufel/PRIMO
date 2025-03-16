@@ -204,7 +204,7 @@ class SetDataModule(L.LightningDataModule):
                 conditioning_sample_inds = np.random.randint(0, len(assay_df), self.cfg.data.set_size - 1).tolist()
 
                 # or draw stratified
-                if {'_target_': 'pairtransformer.utils.set_samplers.QuantileStratifiedSetSampler'} in self.cfg.training.set_sampler:
+                if {'_target_': 'primo.utils.set_samplers.QuantileStratifiedSetSampler'} in self.cfg.training.set_sampler:
 
                     assay_df['quantile'] = pd.qcut(assay_df['DMS_score_modeling'], self.cfg.data.set_size-1, labels=False, duplicates='drop')
                     # draw 1 from each quantile

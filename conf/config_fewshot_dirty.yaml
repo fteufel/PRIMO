@@ -2,7 +2,7 @@ defaults:
   - hold_out: dirty_split
 hydra :
   run:
-    dir: //novo/projects/departments/mi/pgformer/ProteinPairTransformer/outputs/${now:%Y-%m-%d}/${hydra.job.name}_${now:%H-%M-%S}
+    dir: ./outputs/${hydra.job.name}
   searchpath:
     - file://conf 
 data:
@@ -69,7 +69,7 @@ training:
   deterministic_val_sets: False
   only_mask_last: False
   masker: 
-    _target_: pairtransformer.utils.maskers.SpanMasker
+    _target_: primo.utils.maskers.SpanMasker
     min_span_frac: 0.05
     max_span_frac: 0.15
     label_mask_prob: 0.33
@@ -78,7 +78,7 @@ training:
     span_mask_prob: 0.2
     always_mask_variants: True
   set_sampler:
-    _target_: pairtransformer.utils.set_samplers.SimpleSetSampler
+    _target_: primo.utils.set_samplers.SimpleSetSampler
     property_sample_mode: assay_sqrt # proportional to the square root of the number of assays per property
 fine_tuning:
   pretrained_checkpoint_dir: null

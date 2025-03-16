@@ -97,5 +97,5 @@ df.to_pickle('data/all_samples.pkl')
 
 
 # prepare WT table
-df_all = df_annot[['assay', 'sequence', 'pdb_file']]
-df_all.to_csv('data/all_wt.csv', index=False)
+# df_all = df_annot[['assay', 'sequence', 'pdb_file']]
+# df_all.to_csv('data/all_wt.csv', index=False)
