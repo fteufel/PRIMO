@@ -6,9 +6,6 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 from torch.nn import Parameter
 from .esm.rotary_embedding import RotaryEmbedding
-from .esm.multihead_attention import with_incremental_state
-import uuid
-from torch.nn.attention import SDPBackend, sdpa_kernel
 
 from .esm.modules import (
     ESM1bLayerNorm,

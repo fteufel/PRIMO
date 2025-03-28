@@ -19,7 +19,7 @@ print(torch.backends.cuda.mem_efficient_sdp_enabled())
 print(torch.backends.cuda.math_sdp_enabled())
 # True
 
-@hydra.main(version_base=None, config_path="../conf", config_name="config")
+@hydra.main(version_base=None, config_path="../conf", config_name="config_fewshot")
 def run_experiment(cfg : DictConfig) -> None:
     # print(OmegaConf.to_yaml(cfg))
 

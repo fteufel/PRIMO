@@ -6,9 +6,6 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 from torch.nn import Parameter
 from .esm.rotary_embedding import RotaryEmbedding
-from .esm.multihead_attention import with_incremental_state
-import uuid
-from torch.nn.attention import SDPBackend, sdpa_kernel
 
 from .esm.modules import (
     ESM1bLayerNorm,
@@ -110,9 +107,9 @@ class SetMultiheadAttention(nn.Module):
         key: Optional[Tensor],
         value: Optional[Tensor],
         key_padding_mask: Optional[Tensor] = None,
-        incremental_state: Optional[Dict[str, Dict[str, Optional[Tensor]]]] = None,
-        need_weights: bool = True,
-        static_kv: bool = False,
+        # incremental_state: Optional[Dict[str, Dict[str, Optional[Tensor]]]] = None,
+        # need_weights: bool = True,
+        # static_kv: bool = False,
         attn_mask: Optional[Tensor] = None,
     ) -> Tuple[Tensor]:
         """Input shape: Time x Batch x Channel
@@ -228,7 +225,7 @@ class AttentionResamplingSequencePooler(nn.Module):
         Input: x (bsize, set_sz, seq_len, embed_dim)
         Output: x_pooled (bsize, set_sz, num_embeddings, embed_dim)
         """
-        bsz, set_sz, tgt_len, embed_dim = x.size()
+        # bsz, set_sz, tgt_len, embed_dim = x.size()
         # mean pool
         x_mean = x.mean(dim=2)
         # project mean pool to queries

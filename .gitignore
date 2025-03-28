@@ -3,3 +3,6 @@ data/unformatted/*
 misc_checkpoints/
 primo.egg-info/
 *.pyc
+lightning_logs/
+outputs/
+wandb/
