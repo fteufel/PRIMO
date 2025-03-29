@@ -1,19 +1,22 @@
 import hydra
-from omegaconf import DictConfig, OmegaConf
-from lightning import Trainer
-from lightning.pytorch.loggers import WandbLogger
-from lightning.pytorch.callbacks import ModelCheckpoint
+from omegaconf import DictConfig
 import lightning as L
 import torch
 import os
-import wandb
 import pandas as pd
 from scipy.stats import spearmanr
+from esm.pretrained import load_model_and_alphabet
+from tqdm.auto import tqdm
+from sklearn.neural_network import MLPRegressor
+import numpy as np
 
-from primo.lightning_baseline import LightningMLP
 from primo.utils.datamodule import SetDataModule
+from primo.modules.baselines import CachedESMModel
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 torch.set_float32_matmul_precision('medium')
+
 
 @hydra.main(version_base=None, config_path="../conf", config_name="config_fewshot")
 def run_experiment(cfg : DictConfig) -> None:
@@ -24,62 +27,69 @@ def run_experiment(cfg : DictConfig) -> None:
     os.makedirs(os.path.join(out_dir, "predictions"), exist_ok=True)
     print(f'Saving outputs in {out_dir}')
 
-    # Temporarily disable strict schema
-    # we pass this flag to the lightning model so 
-    # that it just uses a flat learning rate
-    OmegaConf.set_struct(cfg, False)
-    # Add the new key
-    cfg.is_finetuning = True
-    cfg.training.dropout = 0.0 # no dropout in Hsu et al.
-    # Re-enable strict schema
-    OmegaConf.set_struct(cfg, True)
-
 
     dm = SetDataModule(cfg)
     dm.setup() # need to call as we have a non-standard way of accessing the data
 
-    # finetune on all test data
+    esm, _ = load_model_and_alphabet('esm2_t33_650M_UR50D')
+    esm.to(device)
+    esm_embedder = CachedESMModel()
+
+    # train on all test data
     results = {}
     parameters = {}
     for assay in cfg.data.hold_out.test:
 
-        # if assay not in ['EPHB2_HUMAN_Tsuboyama_2023_1F0M']:
-        #     continue
 
         print(f"Training on {assay}")
 
-        train_loader, test_loader = dm.get_baseline_dataloaders(assay, n=cfg.fine_tuning.few_shot_n, data_selection_mode='random_increasing', seed=cfg.fine_tuning.seed)
+        train_loader, test_loader = dm.get_baseline_dataloaders(assay, n=cfg.fine_tuning.few_shot_n, data_selection_mode='random_increasing', normalization='z_score', seed=cfg.fine_tuning.seed)
+
+        # put together data
+        all_seq_tokens = []
+        all_pad_masks = []
+        all_aux_labels = []
+        all_label_targets = []
+
+        # Iterate through the DataLoader and collect the data and labels
+        for batch in train_loader:
+            seq_tokens, pad_mask, auxiliary_labels, label_target = batch
+            all_seq_tokens.append(seq_tokens)
+            all_pad_masks.append(pad_mask)
+            all_aux_labels.append(auxiliary_labels)
+            all_label_targets.append(label_target)
+
+        import ipdb; ipdb.set_trace()
+
+
+        # Concatenate all the data and labels into single tensors
+        train_inputs = torch.cat(all_seq_tokens, dim=0).to(device)
+        # train_pad_masks = torch.cat(all_pad_masks, dim=0).to(device)
+        # x_zeroshot = torch.cat(all_aux_labels, dim=0).to(device)
+        y = torch.cat(all_label_targets, dim=0).to(device)
+        x_embeddings = esm_embedder(esm, train_inputs).mean(dim=1)
+
 
         # set up the model
-        model = LightningMLP(cfg)
+        # https://github.com/idmjky/EvolvePro/blob/main/top_layer.py
+        # If “auto”, then max_features=n_features.
+        model = MLPRegressor(hidden_layer_sizes=(128,), random_state=123)
+        
+        model.fit(x_embeddings.cpu().numpy(), y.cpu().numpy())
+     
 
-        if cfg.training.wandb_project is not None:
-            wandb_logger = WandbLogger(project=cfg.training.wandb_project, log_model=False, name =  'baseline_' + assay)
-            wandb_logger.watch(model)
-        trainer = Trainer(
-            max_epochs=cfg.training.epochs,
-            # max_steps=cfg.fine_tuning.num_steps * cfg.training.grad_accumulation_steps,
-            accelerator='gpu',
-            # devices=cfg.training.devices if torch.cuda.is_available() else 1,
-            logger=wandb_logger if cfg.training.wandb_project is not None else None,
-            use_distributed_sampler=False, # TODO work out how to do that properly with iterables
-            # accumulate_grad_batches=cfg.training.grad_accumulation_steps,
-            log_every_n_steps=10,
-            num_sanity_val_steps=0, # NOTE this is bugged with many datasets?
-            precision=cfg.training.precision,
-            gradient_clip_val=cfg.training.clip_grad_norm,
-        )
+     
+        preds = []
+        with torch.no_grad():
+            for batch in tqdm(test_loader):
+                seq_tokens, pad_mask, auxiliary_labels, label_target = batch
+                x_test = esm_embedder(esm, seq_tokens.to(device)).mean(dim=1)
+                y_preds = model.predict(x_test.cpu().numpy())
+                preds.append(y_preds)
 
-        if cfg.training.wandb_project is not None:
-            # need to do this after the trainer is created, else bugged in distributed mode.
-            if trainer.global_rank == 0:
-                wandb_logger.experiment.config.update(OmegaConf.to_container(cfg, resolve=True))
+        # preds = torch.cat(preds, dim=0).numpy()
+        preds = np.concatenate(preds)
 
-
-        trainer.fit(model=model, train_dataloaders=train_loader)
-        # perf_after = trainer.test(model, test_loader)
-        preds = trainer.predict(model, test_loader)
-        preds = torch.cat(preds, dim=0).cpu().numpy()
         df = test_loader.dataset.assay_dataframe
         df['pred'] = preds
         perf = spearmanr(df['DMS_score'], df['pred'])[0]
@@ -89,10 +99,7 @@ def run_experiment(cfg : DictConfig) -> None:
         df_sub = df.loc[~indel_rows]
         perf_indel = spearmanr(df_indel['DMS_score'], df_indel['pred'])[0] if len(df_indel) > 0 else None
         perf_sub = spearmanr(df_sub['DMS_score'], df_sub['pred'])[0] if len(df_sub) > 0 else None
-        wandb.finish()
 
-
-        # results[assay] = {"perf_after": perf_after[0]['test_spearman']}
         results[assay] = {"perf_after": perf, 'perf_indel': perf_indel, 'perf_sub': perf_sub}
 
         # save predictions
@@ -100,16 +107,7 @@ def run_experiment(cfg : DictConfig) -> None:
 
         pd.DataFrame(results).T.to_csv(os.path.join(out_dir, "test_results.csv"))
 
-        pd.DataFrame(parameters).T.to_csv(os.path.join(out_dir, "parameters.csv"))
 
-        # model teardown to free up gpu memory
-        # because we use hacky non-registration of the esm weights internally 
-        # (to avoid saving them with the checkpoint), we need to clean it up
-        # explicitly here
-        del model.model.cached_esm.cache
-        del model.model.esm_as_list[0]
-
-        del model
 
 
 
