@@ -26,6 +26,7 @@ test:
   - CASP3_HUMAN_Roychowdhury_2020
   - D7PM05_CLYGR_Somermeyer_2022
   - GFP_AEQVI_Sarkisyan_2016
+  - BLAT_ECOLX_Gonzalez_2019 # this one is indels only
 
   # these one need to also be removed to make metalic clean.
   - DLG4_HUMAN_Faure_2021
@@ -39,5 +40,6 @@ test:
   - GRB2_HUMAN_Faure_2021
   - DYR_ECOLI_Thompson_2019
   - CAPSD_AAV2S_Sinai_2021
-  - HIS7_YEAST_Pokusaeva_2019 # run this one last, limiting.
-ignore: null
+# excluded because too large
+ignore:
+  - HIS7_YEAST_Pokusaeva_2019

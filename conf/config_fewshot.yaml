@@ -32,6 +32,8 @@ data:
   # IDs of assays to hold out
   hold_out: ${hold_out}
   # set the pretrained checkpoint once we are at the fine-tuning stage.
+  ablate_auxiliary: False
+  ablate_type: False
 model:
   num_layers: 6
   hidden_size: 400

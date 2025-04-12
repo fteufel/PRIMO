@@ -65,6 +65,13 @@ class SetDataModule(L.LightningDataModule):
             df.at[idx, 'mutant_range_end'] = max(positions)
             df.at[idx, 'mutant_positions'] = positions
 
+        if self.cfg.data.ablate_auxiliary:
+            for i in range(len(self.cfg.data.auxiliary_labels)):
+                df[f'auxiliary_label_{i}'] = 0
+                wild_type_df[f'auxiliary_label_{i}_wt'] = 0
+        if self.cfg.data.ablate_type:
+            df['property_int'] = 0
+
         # make hold out df
         if self.cfg.data.hold_out.ignore is not None:
             df = df.loc[~df['assay'].isin(self.cfg.data.hold_out.ignore)]

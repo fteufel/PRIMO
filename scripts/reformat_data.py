@@ -82,6 +82,21 @@ for f in os.listdir('data/unformatted'):
         df['property_int'] = property_dict[df_annot.loc[df_annot['assay'] == assay, 'curated_selection_property'].values[0]]
         dfs.append(df)
 
+# additional indel files missing from our overview sheet
+additional_indel_files = [
+    ('BLAT_ECOLX_Gonzalez_2019_indels.csv', "Enzymatic Activity"),
+    ('CAPSD_AAV2S_Sinai_2021_designed_indels.csv', "Stability"),
+    ('CAPSD_AAV2S_Sinai_2021_library_indels.csv', "Stability"),
+]
+for f, prop in additional_indel_files:
+    df = pd.read_csv(os.path.join('data/unformatted/', f))
+    df['assay'] = f.split('.')[0].removesuffix('_indels').removesuffix('_library').removesuffix('_designed')
+    df['file'] = f
+    df['mutant'] = ''
+    for idx, row in df.iterrows():
+        df.loc[idx, 'mutant'] = find_deleted_indices(wt_dict[df['assay'].values[0]], row['mutated_sequence'])
+    df['property_int'] = property_dict[prop]
+    dfs.append(df)
 
 df = pd.concat(dfs)
 

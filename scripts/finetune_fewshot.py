@@ -9,6 +9,8 @@ import os
 import wandb
 import pandas as pd
 from scipy.stats import spearmanr
+import time
+import json
 
 from primo.lightning import LightningSetTransformer
 from primo.utils.datamodule import SetDataModule
@@ -36,11 +38,11 @@ def run_experiment(cfg : DictConfig) -> None:
     # Re-enable strict schema
     OmegaConf.set_struct(cfg, True)
 
+    timings = {}
 
     dm = SetDataModule(cfg)
     dm.setup() # need to call as we have a non-standard way of accessing the data
     del dm.train_dataset # free up some memory
-
 
     # finetune on all test data
     results = {}
@@ -139,9 +141,14 @@ def run_experiment(cfg : DictConfig) -> None:
                 perf_sub_before = None
         
             if cfg.fine_tuning.few_shot_n >0:
+                start_train_time = time.time()
                 trainer.fit(model=model, train_dataloaders=train_loader)
-                # perf_after = trainer.test(model, test_loader)
+                timings[f"{assay}_training_time"] = time.time() - start_train_time
+
+                start_predict_time = time.time()
                 preds = trainer.predict(model, test_loader)
+                timings[f"{assay}_predicting_time"] = time.time() - start_predict_time
+
                 preds = torch.cat(preds)
                 df = test_loader.dataset.assay_dataframe_test.copy()
                 df['preds'] = preds.cpu().numpy()
@@ -160,13 +167,15 @@ def run_experiment(cfg : DictConfig) -> None:
 
             wandb.finish()
 
-        # results[assay] = {"perf_before": perf_before[0]['test_spearman'], "perf_after": perf_after[0]['test_spearman']}
+        # results[assay] = {"perf_before": perf_before[0]['test_spearman'], "perf_after": perf_after[0]['test_spearman"]}
         results[assay] = {"perf_before": perf_before, "perf_after": perf_after, "perf_indel_before": perf_indel_before, "perf_sub_before": perf_sub_before, "perf_indel_after": perf_indel_after, "perf_sub_after": perf_sub_after}
 
         # return best_val_score
         pd.DataFrame(results).T.to_csv(os.path.join(out_dir, "finetuning_results.csv"))
 
-
+        # Save timings to a JSON file
+        with open(os.path.join(out_dir, "timings.json"), "w") as f:
+            json.dump(timings, f, indent=4)
 
 
 if __name__ == "__main__":
