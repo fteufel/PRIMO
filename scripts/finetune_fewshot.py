@@ -17,7 +17,7 @@ from primo.utils.datamodule import SetDataModule
 
 torch.set_float32_matmul_precision('medium')
 
-RUN_ICL = False
+RUN_ICL = True
 RERUN = False
 
 @hydra.main(version_base=None, config_path="../conf", config_name="config_fewshot")

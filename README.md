@@ -43,37 +43,28 @@ This command trains the PRIMO model, using a batch size of 4*3=12. Depending on 
 python3 scripts/train.py training.grad_accumulation_steps=6 training.batch_size=2 hydra.job.name=default_primo training.compile=False
 ```
 
-Ablation models
+### Ablation models
 ```bash
 # PRIMO with the Metalic split
 python3 scripts/train.py --config_name=config_fewshot_dirty training.grad_accumulation_steps=4 training.batch_size=3 hydra.job.name=badsplit_primo training.compile=False
-
+# PRIMO with MSE loss instead of preference loss
 python3 scripts/train.py training.grad_accumulation_steps=6 training.batch_size=2 hydra.job.name=mse_primo training.compile=True model.loss_fn=mse
+
+python3 scripts/train.py training.grad_accumulation_steps=6 training.batch_size=2 hydra.job.name=no0shot_primo training.compile=False data.ablate_auxiliary=True
+python3 scripts/train.py training.grad_accumulation_steps=6 training.batch_size=2 hydra.job.name=notype_primo training.compile=False data.ablate_type=True
+
 ```
 
 
 ## Evaluation
 
+Slurm scripts are provided for evaluating the model on the test set. The model checkpoint should be specified in the slurm script.
+
+
 ```bash
+sbatch submit_baselines.sh # 5-array job that runs all baselines, parallelizing over seeds
+sbatch submit_primo_array.sh # 36-array job that runs primo, parallelizing over datasets
+sbatch submit_mseprimo_array.sh # 36-array job that runs primo, parallelizing over datasets
 
-# PRIMO
-pretrained_checkpoint_dir=checkpoints/PRIMO # trained model from previous step
-n=8 # few-shot size
-n_test=$((n+1))
-python3 scripts/finetune_fewshot.py --config-name=config_fewshot\
- model.attn_method=pooled data.sets_per_epoch=1000\
- fine_tuning.pretrained_checkpoint_dir=$pretrained_checkpoint_dir\
- fine_tuning.few_shot_n=$n\
- data.set_size=$n\
- data.window_size=null\
- data.set_size_test=$n_test\
- training.batch_size=1\
- training.grad_accumulation_steps=12
-
-
-# ridge baseline.
-python3 scripts/train_baseline.py training.batch_size=$n fine_tuning.few_shot_n=$n training.epochs=1500 training.lr=0.01
-
-# GP baseline.
-python3 scripts/train_gp.py training.batch_size=$n fine_tuning.few_shot_n=$n
 ```
+
