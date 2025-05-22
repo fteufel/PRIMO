@@ -18,6 +18,7 @@ Properties
 import pandas as pd
 import os
 from Bio import Align
+from tqdm import tqdm
 
 def find_deleted_indices(ref_seq, comp_seq):
     """This will also map point mutations as 2 indels, if the aligner feels like it."""
@@ -38,6 +39,7 @@ def find_deleted_indices(ref_seq, comp_seq):
             original = aligned_ref_seq[i] if aligned_ref_seq[i] != '-' else '-'
             new = aligned_comp_seq[i] if aligned_comp_seq[i] != '-' else '-'
             changes.append(f"{original}{i+1}{new}")
+
 
     return ":".join(changes)
 
@@ -66,12 +68,15 @@ df_annot = df_annot.loc[df_annot['curated_selection_property'].isin(
     list(property_dict.keys())
     )]
 df_annot['assay'] = df_annot['DMS_filename'].str.split('.').str[0]
+df_annot['encountered'] = False
 
-for f in os.listdir('data/unformatted'):
+for f in tqdm(os.listdir('data/unformatted')):
     if f.endswith('.csv'):
         assay = f.split('.')[0].removesuffix('_indels')
         if assay not in df_annot['assay'].values:
+            # print(f'Assay {assay} not in overview sheet, skipping.')
             continue
+        # print(f'Processing {assay} from {f}')
         df = pd.read_csv(os.path.join('data/unformatted/', f))
         df['assay'] = assay
         df['file'] = f
@@ -82,13 +87,17 @@ for f in os.listdir('data/unformatted'):
         df['property_int'] = property_dict[df_annot.loc[df_annot['assay'] == assay, 'curated_selection_property'].values[0]]
         dfs.append(df)
 
+        df_annot.loc[df_annot['DMS_filename'] == f, 'encountered'] = True
+    else:
+        print(f'Skipping {f} - not a csv file')
+
 # additional indel files missing from our overview sheet
 additional_indel_files = [
     ('BLAT_ECOLX_Gonzalez_2019_indels.csv', "Enzymatic Activity"),
     ('CAPSD_AAV2S_Sinai_2021_designed_indels.csv', "Stability"),
     ('CAPSD_AAV2S_Sinai_2021_library_indels.csv', "Stability"),
 ]
-for f, prop in additional_indel_files:
+for f, prop in tqdm(additional_indel_files):
     df = pd.read_csv(os.path.join('data/unformatted/', f))
     df['assay'] = f.split('.')[0].removesuffix('_indels').removesuffix('_library').removesuffix('_designed')
     df['file'] = f
@@ -97,6 +106,15 @@ for f, prop in additional_indel_files:
         df.loc[idx, 'mutant'] = find_deleted_indices(wt_dict[df['assay'].values[0]], row['mutated_sequence'])
     df['property_int'] = property_dict[prop]
     dfs.append(df)
+
+    df_annot.loc[df_annot['DMS_filename'] == f, 'encountered'] = True
+
+print('Done loading files')
+
+# check if all assays in overview sheet were encountered
+for idx, row in df_annot.iterrows():
+    if not row['encountered']:
+        print(f'Assay {row["assay"]} not encountered in any file.')
 
 df = pd.concat(dfs)
 
